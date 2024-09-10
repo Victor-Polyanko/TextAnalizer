@@ -8,11 +8,14 @@ class App : public QApplication
     Q_OBJECT
 public:
     App(int &argc, char **argv);
-    bool setClient(Client &aClient);
+    bool sendData(Client &aClient);
 
 signals:
     void disconnect();
 
 private:
     void process(const QByteArray &aData);
+
+private:
+    QString mFileName;
 };

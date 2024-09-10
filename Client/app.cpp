@@ -6,10 +6,30 @@ const QString HOST = "127.0.0.1";
 quint16 PORT = 1024;
 
 App::App(int& argc, char** argv) : QApplication(argc, argv)
-{}
-
-bool App::setClient(Client& aClient)
 {
+    if (argc > 1)
+        mFileName = QString(argv[1]);
+}
+
+bool App::sendData(Client& aClient)
+{
+    if (mFileName.isEmpty())
+    {
+        std::cout << "Error occured: Input file name hasn't been set.";
+        return false;
+    }
+    QFile currentFile(mFileName);
+    if (!currentFile.exists())
+    {
+        std::cout << "Error occured: File " << mFileName.toStdString() << " doesn't exist.";
+        return false;
+    }
+    if (!currentFile.open(QIODevice::ReadOnly))
+    {
+        std::cout << "Error occured: File " << mFileName.toStdString() << " can't be read.";
+        return false;
+    }
+    auto data = currentFile.readAll();
     if (!aClient.connectToHost(HOST, PORT))
     {
         std::cout << "Error occured: " << HOST.toStdString() <<" not found.";
@@ -17,8 +37,6 @@ bool App::setClient(Client& aClient)
     }
     connect(&aClient, &Client::dataReceived, this, &App::process);
     connect(this, &App::disconnect, &aClient, &Client::disconnect);
-    QString message{"Test Message"};
-    auto data = message.toUtf8();
     return aClient.sendData(data);
 }
 
