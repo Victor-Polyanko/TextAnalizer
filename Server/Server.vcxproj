@@ -165,12 +165,16 @@
     <ClCompile Include="app.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="server.cpp" />
+    <ClCompile Include="textAnalizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="server.h" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="app.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="textAnalizer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="$(QtMsBuild)\qt.targets" Condition="Exists('$(QtMsBuild)\qt.targets')" />
