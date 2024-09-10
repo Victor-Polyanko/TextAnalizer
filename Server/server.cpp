@@ -1,5 +1,6 @@
 #include "server.h"
 #include <iostream>
+#include "textAnalizer.h"
 
 const QString HOST = "127.0.0.1";
 const QHostAddress HOST_ADDRESS(HOST);
@@ -13,12 +14,12 @@ Server::Server(QObject* parent) : QObject(parent)
     mServer = std::make_unique<QTcpServer>(new QTcpServer(this));
     connect(mServer.get(), SIGNAL(newConnection()), this, SLOT(newConnection()));
     bool listening = mServer->listen(HOST_ADDRESS, PORT);
-    qDebug() << "Listening:" << (listening ? "at address " + mServer->serverAddress().toString() : " no");
+    std::cout << "\nListening:" << (listening ? "at address " + mServer->serverAddress().toString().toStdString() : " no");
 }
 
 void Server::newConnection()
 {
-    qDebug() << "NewConnection...";
+    std::cout << "\nEstablish new connection with client...";
     while (mServer->hasPendingConnections())
     {
         QTcpSocket* socket = mServer->nextPendingConnection();
@@ -33,10 +34,11 @@ void Server::newConnection()
 
 void Server::disconnected()
 {
-    qDebug() << "Disconnected...";
+    std::cout << "\nDisconnected...";
     QTcpSocket* socket = static_cast<QTcpSocket*>(sender());
     QByteArray* buffer = mBuffers.value(socket);
     char* s = mSizes.value(socket);
+    socket->close();
     socket->deleteLater();
     delete buffer;
     delete s;
@@ -44,7 +46,7 @@ void Server::disconnected()
 
 void Server::obtainData()
 {
-    qDebug() << "ObtainData...";
+    std::cout << "\nObtain text data from client...";
     QTcpSocket* socket = static_cast<QTcpSocket*>(sender());
     QByteArray* buffer = mBuffers.value(socket);
     char* s = mSizes.value(socket);
@@ -74,7 +76,7 @@ void Server::obtainData()
 
 bool Server::sendData(QTcpSocket* aSocket, const QByteArray& aData)
 {
-    qDebug() << "SendData...";
+    std::cout << "\nSend result of text analysis to client...";
     if (aSocket->state() == QAbstractSocket::ConnectedState)
     {
         aSocket->write(IntToArray(aData.size()));

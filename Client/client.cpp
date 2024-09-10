@@ -10,34 +10,34 @@ Client::Client(QObject* parent) : QObject(parent)
 
 bool Client::connectToHost(const QString &aHost, const quint16& aPort)
 {
-    qDebug() << "ConnectToHost" << aHost << "...";
+    std::cout << "\nConnect to the server " << aHost.toStdString() << "...";
     mSocket->connectToHost(aHost, aPort);
     return mSocket->waitForConnected();
 }
 
 bool Client::sendData(const QByteArray& aData)
 {
-    qDebug() << "SendData...";
+    std::cout << "\nSend text data...";
     if (mSocket->state() == QAbstractSocket::ConnectedState)
     {
         mSocket->write(IntToArray(aData.size()));
         auto writeResult = mSocket->write(aData);
         if (writeResult == -1)
-            std::cout << "Error occured: Data hasn't been sent.";
+            std::cout << "\nError occured: Data hasn't been sent.";
         else if (mSocket->waitForBytesWritten())
         {
-            std::cout << writeResult << " bytes has been sent.\n";
+            std::cout << "\n" << writeResult << " bytes has been sent.";
             return waitForAnswer();
         }
     }
     else
-        std::cout << "Error occured: Socket has no connected state.";
+        std::cout << "\nError occured: Socket has no connected state.";
     return false;
 }
 
 bool Client::waitForAnswer()
 {
-    qDebug() << "WaitingForAnswer...";
+    std::cout << "\nWaiting for answer from the server...";
     connect(mSocket.get(), SIGNAL(disconnected()), mSocket.get(), SLOT(deleteLater()));
     bool wasAnswerObtained = mSocket->waitForReadyRead();
     if (wasAnswerObtained)
@@ -46,7 +46,7 @@ bool Client::waitForAnswer()
         emit dataReceived(data);
     }
     else
-        std::cout << "Error occured: No answer from the host";
+        std::cout << "\nError occured: No answer from the host";
     return wasAnswerObtained;
 }
 
@@ -60,6 +60,6 @@ QByteArray IntToArray(qint32 source) //Use qint32 to ensure that the number have
 
 void Client::disconnect()
 {
-    qDebug() << "Disconnect...";
+    std::cout << "\nDisconnect...";
     mSocket->disconnectFromHost();
 }

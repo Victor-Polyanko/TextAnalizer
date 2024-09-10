@@ -15,24 +15,24 @@ bool App::sendData(Client& aClient)
 {
     if (mFileName.isEmpty())
     {
-        std::cout << "Error occured: Input file name hasn't been set.";
+        std::cout << "\nError occured: Input file name hasn't been set.";
         return false;
     }
     QFile currentFile(mFileName);
     if (!currentFile.exists())
     {
-        std::cout << "Error occured: File " << mFileName.toStdString() << " doesn't exist.";
+        std::cout << "\nError occured: File " << mFileName.toStdString() << " doesn't exist.";
         return false;
     }
     if (!currentFile.open(QIODevice::ReadOnly))
     {
-        std::cout << "Error occured: File " << mFileName.toStdString() << " can't be read.";
+        std::cout << "\nError occured: File " << mFileName.toStdString() << " can't be read.";
         return false;
     }
     auto data = currentFile.readAll();
     if (!aClient.connectToHost(HOST, PORT))
     {
-        std::cout << "Error occured: " << HOST.toStdString() <<" not found.";
+        std::cout << "\nError occured: " << HOST.toStdString() <<" not found.";
         return false;
     }
     connect(&aClient, &Client::dataReceived, this, &App::process);
@@ -42,15 +42,15 @@ bool App::sendData(Client& aClient)
 
 void App::process(const QByteArray &aData) 
 {
-    std::cout << "Answer from the server:\n";
+    std::cout << "\nAnswer from the server: ";
     QJsonDocument doc = QJsonDocument::fromJson(aData);
     QJsonObject obj = doc.object();
     auto valueOf = [&obj](const QString &aKey) { 
         return (obj.contains(aKey) ? obj[aKey].toString() : "No " + aKey + " has been obtained").toStdString();
     };
-    std::cout << "    Number of words: " << valueOf("number");
-    std::cout << "    Number of unique words: " << valueOf("unique");
-    std::cout << "    The length of the longest sequence of unique words: " << valueOf("uniqueLength");
-    std::cout << "    The longest sequence of unique words: " << valueOf("uniqueSequence");
+    std::cout << "\n    Number of words: " << valueOf("number");
+    std::cout << "\n    Number of unique words: " << valueOf("unique");
+    std::cout << "\n    The length of the longest sequence of unique words: " << valueOf("uniqueLength");
+    std::cout << "\n    The longest sequence of unique words: " << valueOf("uniqueSequence");
     emit disconnect();
 }

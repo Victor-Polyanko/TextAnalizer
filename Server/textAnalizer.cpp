@@ -1,23 +1,31 @@
 #include "textAnalizer.h"
+#include <iostream>
 #include <QJsonDocument>
 #include <QJsonObject>
 
 const char CONTRACTION = '\'';
 
 TextAnalizer::TextAnalizer()
+    : mNumberOfWords(0)
 {
 }
 
 QByteArray TextAnalizer::analize(const QByteArray& aInput)
 {
+    std::cout << "\nConvert data from client to text...";
     QString text = QString::fromUtf8(aInput);
+    std::cout << "\nAnalize text...";
     processText(text);
+    auto uniqueSequence = mTheLongestSequence.join(' ');
+    std::cout << "\nAnalize completed. Text contains " << mNumberOfWords << " words (" << mUniqueWords.size() << " unique words among them).";
+    std::cout << "\nThe longest sequence of different words has length " << mTheLongestSequence.size() << ": " << uniqueSequence.toStdString();
     QJsonObject obj;
     obj["number"] = QString::number(mNumberOfWords);
     obj["unique"] = QString::number(mUniqueWords.size());
     obj["uniqueLength"] = QString::number(mTheLongestSequence.size());
-    obj["uniqueSequence"] = mTheLongestSequence.join(' ');
+    obj["uniqueSequence"] = uniqueSequence;
     QJsonDocument doc(obj);
+    std::cout << "\nConvert Json data to byteArray for the client...";
     return doc.toJson();
 }
 
