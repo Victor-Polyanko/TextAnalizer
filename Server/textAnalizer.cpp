@@ -1,5 +1,5 @@
 #include "textAnalizer.h"
-#include <qjsondocument.h>
+#include <QJsonDocument>
 #include <QJsonObject>
 
 const char CONTRACTION = '\'';
@@ -11,39 +11,31 @@ TextAnalizer::TextAnalizer()
 QByteArray TextAnalizer::analize(const QByteArray& aInput)
 {
     QString text = QString::fromUtf8(aInput);
-    size_t numberOfWords = 0;
+    processText(text);
+    QJsonObject obj;
+    obj["number"] = QString::number(mNumberOfWords);
+    obj["unique"] = QString::number(mUniqueWords.size());
+    obj["uniqueLength"] = QString::number(mTheLongestSequence.size());
+    obj["uniqueSequence"] = mTheLongestSequence.join(' ');
+    QJsonDocument doc(obj);
+    return doc.toJson();
+}
+
+void TextAnalizer::processText(const QString& aText)
+{
+    mNumberOfWords = 0;
+    mUniqueWords.clear();
+    mTheLongestSequence.clear();
+    mCurrentSequence.clear();
     bool isContraction = false;
     QString currentWord;
-    QSet<QString> uniqueWords;
-    QStringList theLongestSequence;
-    QStringList currentSequence;
-    auto moveCurrentWord = [&]() {
-        if (uniqueWords.contains(currentWord))
-        {
-            int wordsToDelete = currentSequence.size();
-            for (auto checkWord = currentSequence.rbegin(); checkWord != currentSequence.rend(); ++checkWord)
-                if (currentWord == *checkWord)
-                    break;
-                else
-                    --wordsToDelete;
-            if (wordsToDelete > 0)
-            {
-                if (theLongestSequence.size() < currentSequence.size())
-                    theLongestSequence = currentSequence;
-                currentSequence.remove(0, wordsToDelete);
-            }
-        }
-        else
-            uniqueWords.insert(currentWord);
-        currentSequence.append(std::move(currentWord));
-    };
-    for (const auto &symbol : text)
+    for (const auto& symbol : aText)
         if (currentWord.isEmpty())
         {
             if (symbol.isLetter())
             {
                 currentWord.append(symbol);
-                ++numberOfWords;
+                ++mNumberOfWords;
             }
         }
         else
@@ -60,21 +52,36 @@ QByteArray TextAnalizer::analize(const QByteArray& aInput)
             else if (symbol == CONTRACTION)
             {
                 if (isContraction)
-                    moveCurrentWord();
+                    moveCurrentWord(currentWord);
                 isContraction = !isContraction;
             }
             else
-                moveCurrentWord();
+                moveCurrentWord(currentWord);
         }
     if (!currentWord.isEmpty())
-        moveCurrentWord();
-    if (theLongestSequence.size() < currentSequence.size())
-        theLongestSequence = std::move(currentSequence);
-    QJsonObject obj;
-    obj["number"] = QString::number(numberOfWords);
-    obj["unique"] = QString::number(uniqueWords.size());
-    obj["uniqueLength"] = QString::number(theLongestSequence.size());
-    obj["uniqueSequence"] = theLongestSequence.join(' ');
-    QJsonDocument doc(obj);
-    return doc.toJson();
+        moveCurrentWord(currentWord);
+    if (mTheLongestSequence.size() < mCurrentSequence.size())
+        mTheLongestSequence = std::move(mCurrentSequence);
 }
+
+void TextAnalizer::moveCurrentWord(QString &aWord)
+{
+    if (mUniqueWords.contains(aWord))
+    {
+        int wordsToDelete = mCurrentSequence.size();
+        for (auto checkWord = mCurrentSequence.rbegin(); checkWord != mCurrentSequence.rend(); ++checkWord)
+            if (aWord == *checkWord)
+                break;
+            else
+                --wordsToDelete;
+        if (wordsToDelete > 0)
+        {
+            if (mTheLongestSequence.size() < mCurrentSequence.size())
+                mTheLongestSequence = mCurrentSequence;
+            mCurrentSequence.remove(0, wordsToDelete);
+        }
+    }
+    else
+        mUniqueWords.insert(aWord);
+    mCurrentSequence.append(std::move(aWord));
+};
