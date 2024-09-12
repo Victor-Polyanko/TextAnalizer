@@ -2,12 +2,13 @@
 #include <QtCore>
 #include <QtNetwork\QTcpServer>
 #include <QtNetwork\QTcpsocket>
+#include <QtWidgets\qapplication.h>
 
-class Server : public QObject
+class Server : public QApplication
 {
     Q_OBJECT
 public:
-    explicit Server(QObject* parent = 0);
+    explicit Server(int& argc, char** argv);
 
 signals:
     void dataReceived(QTcpSocket* aSocket, const QByteArray &aData);
@@ -18,10 +19,10 @@ public slots:
 private slots:
     void newConnection();
     void obtainData();
-    void disconnected();
+    void disconnect();
+    void displayError(QAbstractSocket::SocketError socketError);
 
 private:
-    std::unique_ptr<QTcpServer> mServer;
-    QHash<QTcpSocket*, QByteArray*> mBuffers; //We need a buffer to store data until block has completely received
-    QHash<QTcpSocket*, char*> mSizes; //We need to store the size to verify if a block has received completely
+    QTcpServer *mServer;
+    QSet<QTcpSocket*> mSockets;
 };

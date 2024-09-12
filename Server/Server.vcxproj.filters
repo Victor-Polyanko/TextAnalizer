@@ -21,18 +21,12 @@
     <ClCompile Include="server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="app.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="textAnalizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="server.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="app.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

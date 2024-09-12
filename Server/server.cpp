@@ -2,19 +2,21 @@
 #include <iostream>
 #include "textAnalizer.h"
 
-const QString HOST = "127.0.0.1";
-const QHostAddress HOST_ADDRESS(HOST);
 quint16 PORT = 1024;
 
-static inline qint32 ArrayToInt(QByteArray source);
-static inline QByteArray IntToArray(qint32 source);
-
-Server::Server(QObject* parent) : QObject(parent)
+Server::Server(int& argc, char** argv) : QApplication(argc, argv)
 {
-    mServer = std::make_unique<QTcpServer>(new QTcpServer(this));
-    connect(mServer.get(), SIGNAL(newConnection()), this, SLOT(newConnection()));
-    bool listening = mServer->listen(HOST_ADDRESS, PORT);
-    std::cout << "\nListening:" << (listening ? "at address " + mServer->serverAddress().toString().toStdString() : " no");
+    mServer = new QTcpServer(); 
+    if (mServer->listen(QHostAddress::Any, PORT))
+    {
+        connect(mServer, &QTcpServer::newConnection, this, &Server::newConnection);
+        std::cout << "\nServer is listening...";
+    }
+    else
+    {
+        std::cout << "\nError occured: Server can't listen.";
+        exit();
+    }
 }
 
 void Server::newConnection()
@@ -23,82 +25,77 @@ void Server::newConnection()
     while (mServer->hasPendingConnections())
     {
         QTcpSocket* socket = mServer->nextPendingConnection();
-        connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
-        connect(socket, SIGNAL(disconnected()), SLOT(disconnected()));
-        QByteArray* buffer = new QByteArray();
-        char* s = new char(0);
-        mBuffers.insert(socket, buffer);
-        mSizes.insert(socket, s);
+        std::cout << "\nClient with socketId " << socket->socketDescriptor() << " has just sent a text";
+        connect(socket, &QTcpSocket::readyRead, this, &Server::obtainData);
+        connect(socket, &QTcpSocket::disconnected, this, &Server::disconnect);
+        connect(socket, &QAbstractSocket::errorOccurred, this, &Server::displayError);
+        mSockets.insert(socket);
     }
 }
 
-void Server::disconnected()
+void Server::disconnect()
 {
-    std::cout << "\nDisconnected...";
+    std::cout << "\nDisconnect socket.";
     QTcpSocket* socket = static_cast<QTcpSocket*>(sender());
-    QByteArray* buffer = mBuffers.value(socket);
-    char* s = mSizes.value(socket);
-    socket->close();
+    QSet<QTcpSocket*>::iterator it = mSockets.find(socket);
+    if (it != mSockets.end())
+        mSockets.remove(*it);
     socket->deleteLater();
-    delete buffer;
-    delete s;
 }
 
 void Server::obtainData()
 {
-    std::cout << "\nObtain text data from client...";
     QTcpSocket* socket = static_cast<QTcpSocket*>(sender());
-    QByteArray* buffer = mBuffers.value(socket);
-    char* s = mSizes.value(socket);
-    qint32 size = *s;
-    while (socket->bytesAvailable() > 0)
+    std::cout << "\nObtain text data from client " << socket->socketDescriptor();
+    QByteArray buffer;
+    QDataStream socketStream(socket);
+    socketStream.setVersion(QDataStream::Qt_5_15);
+    socketStream.startTransaction();
+    socketStream >> buffer;
+    if (!socketStream.commitTransaction())
     {
-        buffer->append(socket->readAll());
-        while ((size == 0 && buffer->size() >= 4) || (size > 0 && buffer->size() >= size))
-        {
-            if (size == 0 && buffer->size() >= 4)
-            {
-                size = ArrayToInt(buffer->mid(0, 4));
-                *s = size;
-                buffer->remove(0, 4);
-            }
-            if (size > 0 && buffer->size() >= size)
-            {
-                QByteArray data = buffer->mid(0, size);
-                buffer->remove(0, size);
-                size = 0;
-                *s = size;
-                emit dataReceived(socket, data);
-            }
-        }
+        std::cout << "\nWaiting for more data to come from " << socket->socketDescriptor();
+        return;
     }
+    std::unique_ptr<TextAnalizer> textAnalizer(new TextAnalizer());
+    auto result = textAnalizer->analize(buffer);
+    sendData(socket, result);
 }
 
 bool Server::sendData(QTcpSocket* aSocket, const QByteArray& aData)
 {
     std::cout << "\nSend result of text analysis to client...";
-    if (aSocket->state() == QAbstractSocket::ConnectedState)
+    if (!aSocket)
     {
-        aSocket->write(IntToArray(aData.size()));
-        aSocket->write(aData);
-        return aSocket->waitForBytesWritten();
-    }
-    else
+        std::cout << "\nError occured: Client is not connected.";
         return false;
+    }
+    if (!aSocket->isOpen())
+    {
+        std::cout << "\nError occured: Socket "<< aSocket->socketDescriptor() << "is not opened.";
+        return false;
+    }
+    QDataStream socketStream(aSocket);
+    socketStream.setVersion(QDataStream::Qt_5_15);
+    socketStream << aData;
+    std::cout << "\nData has been sent to " << aSocket->socketDescriptor();
+    return true;
 }
 
-qint32 ArrayToInt(QByteArray source)
+void Server::displayError(QAbstractSocket::SocketError socketError)
 {
-    qint32 temp;
-    QDataStream data(&source, QIODevice::ReadWrite);
-    data >> temp;
-    return temp;
-}
-
-QByteArray IntToArray(qint32 source) //Use qint32 to ensure that the number have 4 bytes
-{
-    QByteArray temp;
-    QDataStream data(&temp, QIODevice::ReadWrite);
-    data << source;
-    return temp;
+    switch (socketError) {
+    case QAbstractSocket::RemoteHostClosedError:
+        break;
+    case QAbstractSocket::HostNotFoundError:
+        std::cout << "\nThe host was not found. Please check the host name and port settings.";
+        break;
+    case QAbstractSocket::ConnectionRefusedError:
+        std::cout << "\nThe connection was refused by the peer. Make sure QTCPServer is running, and check that the host name and port settings are correct.";
+        break;
+    default:
+        QTcpSocket* socket = qobject_cast<QTcpSocket*>(sender());
+        std::cout << "\nThe following error occurred: " << socket->errorString().toStdString();
+        break;
+    }
 }

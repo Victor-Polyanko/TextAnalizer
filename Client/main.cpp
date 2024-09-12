@@ -1,11 +1,11 @@
-#include "app.h"
-#include <iostream>
+#include "client.h"
 
 int main(int argc, char** argv)
 {
-    Client client;
-    App app(argc, argv);
-    if (!app.sendData(client))
+    Client client(argc, argv);
+    if (client.isReadyForSending())
+        client.sendData();
+    else
         return -1;
-    return app.exec();
+    return client.exec();
 }
