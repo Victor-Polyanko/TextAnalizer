@@ -1,6 +1,7 @@
 #include "server.h"
-#include <iostream>
 #include "textAnalizer.h"
+#include <iostream>
+#include <chrono>
 
 quint16 PORT = 1024;
 
@@ -58,7 +59,10 @@ void Server::obtainData()
         return;
     }
     std::unique_ptr<TextAnalizer> textAnalizer(new TextAnalizer());
+    auto t0 = std::chrono::steady_clock::now();
     auto result = textAnalizer->analize(buffer);
+    auto t1 = std::chrono::steady_clock::now();
+    std::cout << "\nText was anaized in "<< std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() << " ms.";
     sendData(socket, result);
 }
 
