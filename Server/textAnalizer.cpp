@@ -78,7 +78,7 @@ void TextAnalizer::moveCurrentWord(QString &aWord)
     {
         int wordsToDelete = mCurrentSequence.size();
         for (auto checkWord = mCurrentSequence.rbegin(); checkWord != mCurrentSequence.rend(); ++checkWord)
-            if (aWord == *checkWord)
+            if (aWord.compare(*checkWord, Qt::CaseInsensitive) == 0)
                 break;
             else
                 --wordsToDelete;
