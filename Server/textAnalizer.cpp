@@ -74,7 +74,8 @@ void TextAnalizer::processText(const QString& aText)
 
 void TextAnalizer::moveCurrentWord(QString &aWord)
 {
-    if (mUniqueWords.contains(aWord))
+    auto lower = aWord.toLower();
+    if (mUniqueWords.contains(lower))
     {
         int wordsToDelete = mCurrentSequence.size();
         for (auto checkWord = mCurrentSequence.rbegin(); checkWord != mCurrentSequence.rend(); ++checkWord)
@@ -90,6 +91,6 @@ void TextAnalizer::moveCurrentWord(QString &aWord)
         }
     }
     else
-        mUniqueWords.insert(aWord);
+        mUniqueWords.insert(std::move(lower));
     mCurrentSequence.append(std::move(aWord));
 };
